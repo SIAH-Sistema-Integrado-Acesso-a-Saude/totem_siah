@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Michroma&family=Montserrat:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Garante fundo escuro em tudo */
+
+/* Scrollbar invisível para estética */
+::-webkit-scrollbar {
+    display: none;
+}
