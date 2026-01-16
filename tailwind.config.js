@@ -13,8 +13,9 @@ export default {
                 }
             },
             fontFamily: {
-                tech: ['"Michroma"', 'sans-serif'],
-                body: ['"Montserrat"', 'sans-serif'],
+                tech: ['Michroma', 'sans-serif'], 
+                body: ['Montserrat', 'sans-serif'],
+                brand: ['Urbanist', 'sans-serif'],
             }
         },
     },

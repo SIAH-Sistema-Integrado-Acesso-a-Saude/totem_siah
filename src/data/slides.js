@@ -65,10 +65,10 @@ export const slides = [
     subtitle: "Por que uma solução sob medida supera o genérico.",
     features: [
       { title: "Sem Limites", desc: "Sem restrições de clientes ou fotos.", icon: LayoutGrid },
-      { title: "Sem Custos Ocultos", desc: "Fim da cobrança por módulos extras.", icon: DollarSign },
-      { title: "Personalização Real", desc: "O sistema se adapta à sua marca.", icon: Layers },
-      { title: "Infra Dedicada", desc: "Servidor exclusivo, sem lentidão.", icon: Server },
-      { title: "Privacidade", desc: "Banco de dados isolado e seguro.", icon: Lock },
+      { title: "Sem Travas de Funcionalidade", desc: "Acesso total a todos os módulos contratados.", icon: DollarSign },
+      { title: "Personalização Real", desc: "O software se adapta ao seu processo, não o contrário.", icon: Layers },
+      { title: "Infraestrutura Dedicada", desc: "Servidor exclusivo. O sistema não trava mesmo com muitos acessos.", icon: Server },
+      { title: "Privacidade", desc: "Blindagem de dados sensíveis e conformidade total com a LGPD.", icon: Lock },
       { title: "Visão 360", desc: "Dashboards gerenciais completos.", icon: Eye },
     ]
   },
@@ -94,10 +94,10 @@ export const slides = [
     title: "RESUMO CONTRATUAL",
     subtitle: "Transparência e segurança.",
     items: [
-      { label: "Pagamento", value: "30% Entrada + Parcelas", icon: DollarSign },
+      { label: "Pagamento", value: "17,15% Entrada + Parcelas", icon: DollarSign },
       { label: "Escopo", value: "Fechado (Garantia de Entrega)", icon: FileCheck },
-      { label: "Garantia", value: "3 Meses de Suporte Gratuito", icon: Shield },
-      { label: "Propriedade", value: "Código 100% do Cliente", icon: Lock },
+      { label: "Garantia", value: "Suporte Até o Encerramento do Contrato", icon: Shield },
+      { label: "Propriedade", value: "Código 100% do Cliente Após Quitação", icon: Lock },
     ]
   },
 
@@ -106,9 +106,9 @@ export const slides = [
     id: 8,
     layout: "price_hero",
     title: "INVESTIMENTO",
-    value: "R$ XX.000",
-    obs: "+ Custo Mensal de Servidor (Infraestrutura)",
-    cta: "Iniciar Projeto"
+    value: "R$ 35.000",
+    obs: "ENTRADA DE APROX 17,15% DO VALOR TOTAL + PARCELAS PARCELAS DO VALOR RESTANTE",
+    cta: "Ver Detalhes"
   },
 
   // 9. AGRADECIMENTO
@@ -117,6 +117,6 @@ export const slides = [
     layout: "thanks_hero",
     title: "OBRIGADO",
     subtitle: "Vamos construir o futuro da sua clínica juntos?",
-    contact: "contato@treenity.com.br"
+    contact: "treenity.tech@gmail.com"
   }
 ];
