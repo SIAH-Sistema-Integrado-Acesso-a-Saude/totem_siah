@@ -2,14 +2,26 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const API_BASE_URL = 'https://mulberry-carload-example.ngrok-free.dev/api';
+const API_BASE_URL = '/api';
+
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
 
+  const defaultHeaders = {
+    'ngrok-skip-browser-warning': '69420',
+  };
+  if (options.method === 'POST') {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(url, {
     ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
     signal: controller.signal,
   });
 
@@ -19,12 +31,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
 
 export async function queryCpf(cpf) {
   try {
-    const response = await fetch(`${API_BASE_URL}/usuarios/${cpf}`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/usuarios/${cpf}`, {
       method: 'GET',
-      headers: {
-        'ngrok-skip-browser-warning': '69420',
-        'Content-Type': 'application/json',
-      },
     });
     if (!response.ok) return null;
     return await response.json();
@@ -36,19 +44,17 @@ export async function queryCpf(cpf) {
 
 export async function triageCpf(cpf) {
   await sleep(800);
+  const numero = String(Math.floor(Math.random() * 900) + 100); // 100-999
   return {
     cpf,
-    senha: 'T-001',
+    senha: `A-${numero}`,
     status: 'AGUARDANDO_TRIAGEM',
   };
 }
 
 export async function startBiometry(cpf) {
-  const response = await fetchWithTimeout(`http://localhost:8080/iniciar-leitura?cpf=${cpf}`, {
+  const response = await fetchWithTimeout(`/iniciar-leitura?cpf=${cpf}`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
   }, 30000);
 
   if (!response.ok) {
@@ -59,12 +65,8 @@ export async function startBiometry(cpf) {
 }
 
 export async function generateTicket(cpf, area) {
-  const response = await fetch(`${API_BASE_URL}/senhas`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/queue/validate-totem`, {
     method: 'POST',
-    headers: {
-      'ngrok-skip-browser-warning': '69420',
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({
       patientCpf: cpf,
       serviceType: area,

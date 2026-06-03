@@ -76,7 +76,10 @@ export function useTotemFlow() {
           setLoading(true);
           try {
             const result = await startBiometry(cpf);
-            if (result && (result.status === 'ok' || result.status === 'success' || result.success)) {
+            // Verifica tanto respostas de sucesso explícito quanto ausência de erro
+            const verificado = result && !result.erro &&
+              (result.status === 'ok' || result.status === 'success' || result.success || result.mensagem);
+            if (verificado) {
               setUser((prev) => ({
                 ...(prev ?? {}),
                 nome: result.nome || prev?.nome || 'Paciente',

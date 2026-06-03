@@ -5,5 +5,18 @@ export default defineConfig({
   plugins: [react()],
   server: {
     allowedHosts: ['arletha-nonbusy-unfaithfully.ngrok-free.dev'],
-  }
+    proxy: {
+      '/api': {
+        target: 'https://mulberry-carload-example.ngrok-free.dev',
+        changeOrigin: true,
+        headers: {
+          'ngrok-skip-browser-warning': '69420',
+        },
+      },
+      '/iniciar-leitura': {
+        target: 'http://localhost:8080',
+        changeOrigin: false,
+      },
+    },
+  },
 })
