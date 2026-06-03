@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Fingerprint, RefreshCcw } from 'lucide-react';
+import { Fingerprint, ScanFace, RefreshCcw } from 'lucide-react';
 import { useTotemFlow } from '../hooks/useTotemFlow';
+import FacialCapture from './FacialCapture';
 import leftIllustration from '../assets/Component 1 (2).png';
 import rightIllustration from '../assets/Image (29).png';
 
@@ -27,7 +28,10 @@ export default function Presentation() {
     password,
     loading,
     overlayMessage,
+    statusMessage,
     authenticate,
+    submitFacial,
+    cancelFacial,
     selectArea,
     reset,
   } = useTotemFlow();
@@ -47,6 +51,11 @@ export default function Presentation() {
       label: 'Totem de atendimento',
       title: 'Aguardando leitura',
       subtitle: 'Coloque o dedo no leitor para continuar.',
+    },
+    facialPrompt: {
+      label: 'Totem de atendimento',
+      title: 'Reconhecimento facial',
+      subtitle: 'Posicione seu rosto na câmera e siga as instruções.',
     },
     areaSelection: {
       label: 'Totem de atendimento',
@@ -177,7 +186,7 @@ export default function Presentation() {
                       <p className="mt-2 text-sm text-[#64748b]">Escolha o método de verificação</p>
                     </div>
 
-                    <div className="mt-8 grid gap-4 sm:grid-cols-1">
+                    <div className="mt-8 grid gap-4 sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => authenticate('biometria')}
@@ -186,7 +195,19 @@ export default function Presentation() {
                         <Fingerprint className="h-6 w-6" />
                         Biometria
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => authenticate('facial')}
+                        className="flex h-20 items-center justify-center gap-3 rounded-[28px] bg-[#06a08b] px-5 py-4 text-lg font-semibold text-white transition hover:bg-[#058a78]"
+                      >
+                        <ScanFace className="h-7 w-7" strokeWidth={2} />
+                        Facial
+                      </button>
                     </div>
+
+                    {statusMessage ? (
+                      <p className="mt-5 text-center text-sm font-medium text-[#b91c1c]">{statusMessage}</p>
+                    ) : null}
 
                     <div className="mt-6 rounded-[28px] border border-slate-200 bg-[#f8fafc] p-4 text-sm text-[#475569]">
                       Se o hardware demorar mais de 30 segundos, aparecerá timeout e você poderá tentar novamente.
@@ -218,6 +239,18 @@ export default function Presentation() {
                       <p className="text-xl font-semibold text-[#162033]">Coloque o dedo no leitor, por gentileza</p>
                       <p className="mt-3 text-sm text-[#64748b]">A leitura começa em instantes.</p>
                     </div>
+                  </motion.div>
+                )}
+
+                {step === 'facialPrompt' && (
+                  <motion.div
+                    key="facialPrompt"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -24 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FacialCapture onComplete={submitFacial} onCancel={cancelFacial} />
                   </motion.div>
                 )}
 

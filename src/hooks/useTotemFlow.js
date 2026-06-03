@@ -4,7 +4,12 @@ import {
   startBiometry,
   triageCpf,
   generateTicket,
+  recognizeFace,
 } from '../services/totemService';
+
+// Remove máscara do CPF (pontos/traço) para comparação — o banco da API tem
+// CPFs salvos em formatos inconsistentes (com e sem máscara).
+const soDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
 
 export function useTotemFlow() {
   const [cpf, setCpf] = useState('');
@@ -68,6 +73,13 @@ export function useTotemFlow() {
   const authenticate = useCallback(
     async (method) => {
       setEntryMessage('');
+
+      if (method === 'facial') {
+        setStatusMessage('');
+        setStep('facialPrompt');
+        return;
+      }
+
       if (method === 'biometria') {
         setStep('biometryPrompt');
         setOverlayMessage('Toque no leitor...');
@@ -100,6 +112,49 @@ export function useTotemFlow() {
     },
     [cpf]
   );
+
+  const submitFacial = useCallback(
+    async (images) => {
+      setLoading(true);
+      setOverlayMessage('Reconhecendo o rosto...');
+      try {
+        const result = await recognizeFace(images);
+
+        if (result?.sucesso && result.paciente) {
+          // Confere se o rosto reconhecido bate com o CPF digitado (comparação sem máscara).
+          if (soDigitos(result.paciente.cpf) !== soDigitos(cpf)) {
+            setStep('authSelection');
+            setStatusMessage('O rosto reconhecido não corresponde ao CPF informado. Tente novamente.');
+            return;
+          }
+
+          setUser((prev) => ({
+            ...(prev ?? {}),
+            ...result.paciente,
+            nome: result.paciente.nome || prev?.nome || 'Paciente',
+          }));
+          setStep('areaSelection');
+          return;
+        }
+
+        setStep('authSelection');
+        setStatusMessage('Rosto não identificado. Tente novamente.');
+      } catch (error) {
+        console.error('Erro no reconhecimento facial:', error);
+        setStep('authSelection');
+        setStatusMessage('Erro no reconhecimento facial. Tente novamente.');
+      } finally {
+        setLoading(false);
+        setOverlayMessage('');
+      }
+    },
+    [cpf],
+  );
+
+  const cancelFacial = useCallback(() => {
+    setStep('authSelection');
+    setStatusMessage('Escolha um método de verificação.');
+  }, []);
 
   const selectArea = useCallback(
     async (area) => {
@@ -161,6 +216,8 @@ export function useTotemFlow() {
     loading,
     overlayMessage,
     authenticate,
+    submitFacial,
+    cancelFacial,
     selectArea,
     reset,
   };

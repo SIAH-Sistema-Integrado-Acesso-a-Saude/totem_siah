@@ -2,7 +2,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const API_BASE_URL = 'https://mulberry-carload-example.ngrok-free.dev/api';
+// Base relativa: as chamadas passam pelo proxy do Vite (ver vite.config.js),
+// evitando o CORS da API. Em produção, ajustar para a URL pública da API.
+const API_BASE_URL = '/api';
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
@@ -53,6 +55,28 @@ export async function startBiometry(cpf) {
 
   if (!response.ok) {
     throw new Error(`Erro na leitura biométrica: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+export async function recognizeFace(images) {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/pacientes/reconhecer`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': '69420',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ images }),
+  }, 30000);
+
+  // 401 = rosto não reconhecido na base; tratamos como "sem match", não como erro fatal.
+  if (response.status === 401) {
+    return { sucesso: false };
+  }
+
+  if (!response.ok) {
+    throw new Error(`Erro no reconhecimento facial: ${response.status}`);
   }
 
   return await response.json();
