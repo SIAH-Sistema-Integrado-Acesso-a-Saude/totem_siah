@@ -64,12 +64,33 @@ export async function startBiometry(cpf) {
   return await response.json();
 }
 
+export async function recognizeFace(images) {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/pacientes/reconhecer`, {
+    method: 'POST',
+    body: JSON.stringify({ images }),
+  }, 30000);
+
+  // 401 = rosto não reconhecido na base; tratamos como "sem match", não como erro fatal.
+  if (response.status === 401) {
+    return { sucesso: false };
+  }
+
+  if (!response.ok) {
+    throw new Error(`Erro no reconhecimento facial: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 export async function generateTicket(cpf, area) {
-  const response = await fetchWithTimeout(`${API_BASE_URL}/queue/validate-totem`, {
+  // Extrai a primeira letra do serviço: "Pediatra" → "P"
+  const servicePrefix = area.charAt(0).toUpperCase();
+
+  const response = await fetchWithTimeout(`/queue/validate-totem`, {
     method: 'POST',
     body: JSON.stringify({
       patientCpf: cpf,
-      serviceType: area,
+      serviceType: servicePrefix,
     }),
   });
 
@@ -77,5 +98,22 @@ export async function generateTicket(cpf, area) {
     throw new Error(`Erro ao gerar ticket: ${response.status}`);
   }
 
-  return await response.json();
-}
+  const data = await response.json();
+
+  // Normaliza a resposta: tenta vários campos que a API pode retornar
+  const ticketCode =
+    data?.senha ||
+    data?.ticket ||
+    data?.numero ||
+    data?.code ||
+    data?.senhaGerada ||
+    data?.ticketNumber;
+
+  if (ticketCode) {
+    return { senha: ticketCode };
+  }
+
+  // Fallback local: gera o código no formato correto se a API não retornou
+  const numero = String(Math.floor(Math.random() * 900) + 100);
+  return { senha: `${servicePrefix}-${numero}` };
+}

@@ -17,6 +17,13 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: false,
       },
+      '/queue': {
+        target: 'https://mulberry-carload-example.ngrok-free.dev',
+        changeOrigin: true,
+        headers: {
+          'ngrok-skip-browser-warning': '69420',
+        },
+      },
     },
   },
 })
