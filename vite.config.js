@@ -4,7 +4,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: ['arletha-nonbusy-unfaithfully.ngrok-free.dev'],
+    allowedHosts: [
+      'arletha-nonbusy-unfaithfully.ngrok-free.dev',
+      'voyage-eardrum-spirited.ngrok-free.dev'
+    ],
     proxy: {
       '/api': {
         target: 'https://mulberry-carload-example.ngrok-free.dev',

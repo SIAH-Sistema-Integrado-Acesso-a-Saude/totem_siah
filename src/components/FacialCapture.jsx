@@ -10,8 +10,6 @@ const desafios = [
   { id: 'cima', label: 'Cima', instrucao: 'Incline o rosto para cima' },
 ];
 
-// Captura as 4 poses via webcam + face-api (prova de vida) e devolve as fotos em Base64.
-// Reaproveita a mesma geometria de validação de pose do fluxo original (reconhecimento.jsx).
 export default function FacialCapture({ onComplete, onCancel }) {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
@@ -23,12 +21,17 @@ export default function FacialCapture({ onComplete, onCancel }) {
   const ultimaDeteccaoRef = useRef(null);
   const ultimaDeteccaoTimeRef = useRef(0);
   const finalizadoRef = useRef(false);
+  const baselineRef = useRef(null);
+  const amostrasBaselineRef = useRef([]);
+
+  const AMOSTRAS_BASELINE = 20;
 
   const [modelosCarregados, setModelosCarregados] = useState(false);
   const [desafioIndex, setDesafioIndex] = useState(0);
   const [posicaoCorreta, setPosicaoCorreta] = useState(false);
   const [mensagem, setMensagem] = useState('Carregando IA...');
   const [processando, setProcessando] = useState(false);
+  const [calibrando, setCalibrando] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -67,10 +70,40 @@ export default function FacialCapture({ onComplete, onCancel }) {
 
     const atualId = desafios[desafioIndexRef.current]?.id;
 
-    if (atualId === 'frente' && ratio > 0.8 && ratio < 1.2) return true;
-    if (atualId === 'esquerda' && ratio > 2.2) return true;
-    if (atualId === 'direita' && ratio < 0.45) return true;
-    if (atualId === 'cima' && verticalDiff < 15) return true;
+    if (atualId === 'frente') {
+      if (!baselineRef.current) {
+        if (ratio > 0.2 && ratio < 5 && verticalDiff > 3) {
+          amostrasBaselineRef.current.push({ ratio, verticalDiff });
+          if (amostrasBaselineRef.current.length >= AMOSTRAS_BASELINE) {
+            const soma = amostrasBaselineRef.current.reduce(
+              (acc, s) => ({
+                ratio: acc.ratio + s.ratio,
+                verticalDiff: acc.verticalDiff + s.verticalDiff,
+              }),
+              { ratio: 0, verticalDiff: 0 }
+            );
+            const n = amostrasBaselineRef.current.length;
+            baselineRef.current = {
+              ratio: soma.ratio / n,
+              verticalDiff: soma.verticalDiff / n,
+            };
+          }
+        }
+        return false;
+      }
+      const deltaRatio = ratio / baselineRef.current.ratio;
+      const deltaVert = verticalDiff / baselineRef.current.verticalDiff;
+      return deltaRatio > 0.78 && deltaRatio < 1.28 && deltaVert > 0.75;
+    }
+
+    if (!baselineRef.current) return false;
+    const base = baselineRef.current;
+    const deltaRatio = ratio / base.ratio;
+    const deltaVert = verticalDiff / base.verticalDiff;
+
+    if (atualId === 'esquerda' && deltaRatio > 1.7) return true;
+    if (atualId === 'direita' && deltaRatio < 0.5) return true;
+    if (atualId === 'cima' && deltaVert < 0.55) return true;
 
     return false;
   };
@@ -78,8 +111,9 @@ export default function FacialCapture({ onComplete, onCancel }) {
   const desenharGuia = (ctx, box, estaCorreto) => {
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
-    const rh = box.width * 0.48;
-    const rv = box.height * 0.56;
+    const base = Math.min(box.width, box.height);
+    const rh = base * 0.65;
+    const rv = base * 0.9;
 
     ctx.strokeStyle = estaCorreto
       ? 'rgba(6, 160, 139, 0.8)'
@@ -87,7 +121,7 @@ export default function FacialCapture({ onComplete, onCancel }) {
     ctx.lineWidth = 3;
 
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 5, rh, rv, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, rh, rv, 0, 0, Math.PI * 2);
     ctx.stroke();
   };
 
@@ -137,14 +171,19 @@ export default function FacialCapture({ onComplete, onCancel }) {
       if (deteccao) {
         const resized = faceapi.resizeResults(deteccao, displaySize);
         const estaCorreto = validarPosicao(deteccao.landmarks);
+        const emCalibracao = desafios[idx]?.id === 'frente' && !baselineRef.current;
 
         ultimaDeteccaoRef.current = { resized, estaCorreto };
         ultimaDeteccaoTimeRef.current = Date.now();
         setPosicaoCorreta(estaCorreto);
+        setCalibrando(emCalibracao);
 
-        desenharGuia(ctx, resized.detection.box, estaCorreto);
+        desenharGuia(ctx, resized.detection.box, estaCorreto || emCalibracao);
 
-        if (estaCorreto) {
+        if (emCalibracao) {
+          tempoInicioEstabilidadeRef.current = null;
+          setMensagem('Calibrando, mantenha-se parado...');
+        } else if (estaCorreto) {
           if (!tempoInicioEstabilidadeRef.current) tempoInicioEstabilidadeRef.current = Date.now();
           const tempoPassado = Date.now() - tempoInicioEstabilidadeRef.current;
 
@@ -211,10 +250,18 @@ export default function FacialCapture({ onComplete, onCancel }) {
       {modelosCarregados && !processando && (
         <div
           className={`mb-4 flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-            posicaoCorreta ? 'bg-[#ecfdf5] text-[#0f766e]' : 'bg-[#fef2f2] text-[#b91c1c]'
+            calibrando
+              ? 'bg-[#fef9c3] text-[#854d0e]'
+              : posicaoCorreta
+              ? 'bg-[#ecfdf5] text-[#0f766e]'
+              : 'bg-[#fef2f2] text-[#b91c1c]'
           }`}
         >
-          {posicaoCorreta ? (
+          {calibrando ? (
+            <>
+              <AlertTriangle size={16} /> Calibrando...
+            </>
+          ) : posicaoCorreta ? (
             <>
               <Check size={16} /> Posição correta
             </>

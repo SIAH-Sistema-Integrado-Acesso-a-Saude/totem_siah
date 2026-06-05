@@ -3,14 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Garante fundo escuro em tudo */
-
-/* Scrollbar invisível para estética */
 ::-webkit-scrollbar {
     display: none;
 }
 
-/* Global tweaks for Totem (tablet touch friendliness) */
 html, body, #root {
     height: 100%;
 }
@@ -25,8 +21,6 @@ button, a {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     touch-action: manipulation;
 }
-
-/* Prevent text selection on touch devices for better UX */
 button {
     user-select: none;
 }
