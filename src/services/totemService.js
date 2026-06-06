@@ -42,6 +42,26 @@ export async function queryCpf(cpf) {
   }
 }
 
+export async function submitCadastro(payload) {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/pacientes/cadastrar`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, 30000);
+
+  const text = await response.text();
+  let body = text;
+  try { body = JSON.parse(text); } catch { /* keep raw text */ }
+
+  if (!response.ok) {
+    const err = new Error(`HTTP ${response.status}`);
+    err.status = response.status;
+    err.body = body;
+    throw err;
+  }
+
+  return body;
+}
+
 export async function triageCpf(cpf) {
   await sleep(800);
   const numero = String(Math.floor(Math.random() * 900) + 100); // 100-999
@@ -70,16 +90,22 @@ export async function recognizeFace(images) {
     body: JSON.stringify({ images }),
   }, 30000);
 
-  // 401 = rosto não reconhecido na base; tratamos como "sem match", não como erro fatal.
   if (response.status === 401) {
     return { sucesso: false };
   }
 
+  const text = await response.text();
+  let body = text;
+  try { body = JSON.parse(text); } catch { /* keep raw */ }
+
   if (!response.ok) {
-    throw new Error(`Erro no reconhecimento facial: ${response.status}`);
+    const err = new Error(`HTTP ${response.status}`);
+    err.status = response.status;
+    err.body = body;
+    throw err;
   }
 
-  return await response.json();
+  return body;
 }
 
 export async function generateTicket(cpf, area) {

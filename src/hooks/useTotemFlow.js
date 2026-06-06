@@ -5,6 +5,7 @@ import {
   triageCpf,
   generateTicket,
   recognizeFace,
+  submitCadastro,
 } from '../services/totemService';
 
 // Remove máscara do CPF (pontos/traço) para comparação.
@@ -63,11 +64,38 @@ export function useTotemFlow() {
       return;
     }
 
-    const triage = await triageCpf(cpf);
-    setPassword(triage.senha);
-    setStep('triageResult');
-    setStatusMessage('Senha gerada com sucesso. Dirija-se à triagem para completar seu cadastro.');
+    setStep('facialEnrollment');
+    setStatusMessage('CPF não encontrado. Faça o cadastro facial para continuar.');
   }, [cpf]);
+
+  const capturedImagesRef = useRef([]);
+
+  const enrollFacial = useCallback(
+    async (images) => {
+      capturedImagesRef.current = images;
+      setLoading(true);
+      setOverlayMessage('Gerando senha de triagem...');
+      try {
+        const triage = await triageCpf(cpf);
+        setPassword(triage.senha);
+        setStep('triageResult');
+        setStatusMessage('Captura facial concluída. Dirija-se à triagem para completar seu cadastro.');
+      } catch (error) {
+        console.error('Erro ao gerar triagem:', error);
+        setStep('cpfEntry');
+        setEntryMessage('Erro ao gerar senha de triagem. Tente novamente.');
+      } finally {
+        setLoading(false);
+        setOverlayMessage('');
+      }
+    },
+    [cpf],
+  );
+
+  const cancelEnrollment = useCallback(() => {
+    setStep('cpfEntry');
+    setStatusMessage('');
+  }, []);
 
   const authenticate = useCallback(
     async (method) => {
@@ -143,8 +171,12 @@ export function useTotemFlow() {
         setStatusMessage('Rosto não identificado. Tente novamente.');
       } catch (error) {
         console.error('Erro no reconhecimento facial:', error);
+        const status = error?.status ?? 'sem status';
+        let body = error?.body;
+        if (typeof body === 'object') body = JSON.stringify(body);
+        const detail = `Erro ${status}: ${body ?? error?.message ?? 'sem detalhe'}`;
         setStep('authSelection');
-        setStatusMessage('Erro no reconhecimento facial. Tente novamente.');
+        setStatusMessage(detail.length > 500 ? detail.slice(0, 500) + '…' : detail);
       } finally {
         setLoading(false);
         setOverlayMessage('');
@@ -183,8 +215,37 @@ export function useTotemFlow() {
     [cpf]
   );
 
+  const goToCadastroForm = useCallback(() => {
+    setStep('cadastroForm');
+    setStatusMessage('');
+  }, []);
+
+  const submitCadastroForm = useCallback(
+    async (formData) => {
+      setLoading(true);
+      setOverlayMessage('Enviando cadastro...');
+      try {
+        await submitCadastro(formData);
+        setStep('cadastroSuccess');
+        setStatusMessage('Cadastro concluído com sucesso.');
+      } catch (error) {
+        console.error('Erro ao enviar cadastro:', error);
+        const status = error?.status ?? 'sem status';
+        let body = error?.body;
+        if (typeof body === 'object') body = JSON.stringify(body);
+        const msg = `Erro ${status}: ${body ?? error?.message ?? 'sem detalhe'}`;
+        setStatusMessage(msg.length > 500 ? msg.slice(0, 500) + '…' : msg);
+      } finally {
+        setLoading(false);
+        setOverlayMessage('');
+      }
+    },
+    [],
+  );
+
   const reset = useCallback(() => {
     clearTimers();
+    capturedImagesRef.current = [];
     setCpf('');
     setStep('cpfEntry');
     setUser(null);
@@ -196,7 +257,7 @@ export function useTotemFlow() {
   }, [clearTimers]);
 
   useEffect(() => {
-    if (step === 'result' || step === 'triageResult') {
+    if (step === 'cadastroSuccess') {
       const resultTimer = setTimeout(reset, 4000);
       timers.current.push(resultTimer);
       return () => clearTimeout(resultTimer);
@@ -220,7 +281,12 @@ export function useTotemFlow() {
     authenticate,
     submitFacial,
     cancelFacial,
+    enrollFacial,
+    cancelEnrollment,
     selectArea,
+    goToCadastroForm,
+    submitCadastroForm,
+    capturedImages: capturedImagesRef.current,
     reset,
   };
 }

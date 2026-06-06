@@ -3,6 +3,7 @@ node_modules/
 
 # Build de produção
 build/
+dist/
 
 # Arquivos de sistema operacional
 .DS_Store

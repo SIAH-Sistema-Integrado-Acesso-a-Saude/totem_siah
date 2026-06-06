@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Fingerprint, ScanFace, RefreshCcw } from 'lucide-react';
 import { useTotemFlow } from '../hooks/useTotemFlow';
 import FacialCapture from './FacialCapture';
+import CadastroForm from './CadastroForm';
 import leftIllustration from '../assets/Component 1 (2).png';
 import rightIllustration from '../assets/Image (29).png';
 
@@ -32,7 +33,12 @@ export default function Presentation() {
     authenticate,
     submitFacial,
     cancelFacial,
+    enrollFacial,
+    cancelEnrollment,
     selectArea,
+    goToCadastroForm,
+    submitCadastroForm,
+    capturedImages,
     reset,
   } = useTotemFlow();
 
@@ -57,6 +63,11 @@ export default function Presentation() {
       title: 'Reconhecimento facial',
       subtitle: 'Posicione seu rosto na câmera e siga as instruções.',
     },
+    facialEnrollment: {
+      label: 'Totem de atendimento',
+      title: 'Cadastro facial',
+      subtitle: 'CPF não localizado. Faça o cadastro facial para continuar.',
+    },
     areaSelection: {
       label: 'Totem de atendimento',
       title: 'Escolher área',
@@ -71,6 +82,16 @@ export default function Presentation() {
       label: 'Totem de atendimento',
       title: 'Senha gerada',
       subtitle: 'Aguarde na área selecionada para ser chamado.',
+    },
+    cadastroForm: {
+      label: 'Totem de atendimento',
+      title: 'Cadastro',
+      subtitle: 'Confirme ou complete seus dados para finalizar.',
+    },
+    cadastroSuccess: {
+      label: 'Totem de atendimento',
+      title: 'Cadastro concluído',
+      subtitle: 'Dados salvos com sucesso.',
     },
   };
 
@@ -206,7 +227,9 @@ export default function Presentation() {
                     </div>
 
                     {statusMessage ? (
-                      <p className="mt-5 text-center text-sm font-medium text-[#b91c1c]">{statusMessage}</p>
+                      <pre className="mt-5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-200 bg-red-50 p-3 text-left text-xs font-medium text-[#b91c1c]">
+                        {statusMessage}
+                      </pre>
                     ) : null}
 
                     <div className="mt-6 rounded-[28px] border border-slate-200 bg-[#f8fafc] p-4 text-sm text-[#475569]">
@@ -251,6 +274,18 @@ export default function Presentation() {
                     transition={{ duration: 0.3 }}
                   >
                     <FacialCapture onComplete={submitFacial} onCancel={cancelFacial} />
+                  </motion.div>
+                )}
+
+                {step === 'facialEnrollment' && (
+                  <motion.div
+                    key="facialEnrollment"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -24 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FacialCapture onComplete={enrollFacial} onCancel={cancelEnrollment} />
                   </motion.div>
                 )}
 
@@ -311,8 +346,15 @@ export default function Presentation() {
                     <div className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] p-7 text-center">
                       <p className="text-sm text-[#0f766e]">Nenhum cadastro encontrado</p>
                       <p className="mt-3 text-3xl font-semibold text-[#064e3b]">{password}</p>
-                      <p className="mt-2 text-sm text-[#0f766e]">Dirija-se à triagem para completar o cadastro.</p>
+                      <p className="mt-2 text-sm text-[#0f766e]">Continue para completar seu cadastro.</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={goToCadastroForm}
+                      className="mt-6 w-full rounded-[16px] bg-[#0b8f78] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#0a7e69]"
+                    >
+                      Continuar para cadastro
+                    </button>
                   </motion.div>
                 )}
 
@@ -335,6 +377,55 @@ export default function Presentation() {
 
                     <div className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] p-7 text-center">
                       <p className="text-sm text-[#0f766e]">Senha gerada com sucesso</p>
+                      <p className="mt-3 text-3xl font-semibold text-[#064e3b]">{password}</p>
+                      <p className="mt-2 text-sm text-[#0f766e]">Confirme seus dados antes de aguardar atendimento.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={goToCadastroForm}
+                      className="mt-6 w-full rounded-[16px] bg-[#0b8f78] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#0a7e69]"
+                    >
+                      Continuar para cadastro
+                    </button>
+                  </motion.div>
+                )}
+
+                {step === 'cadastroForm' && (
+                  <motion.div
+                    key="cadastroForm"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -24 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <CadastroForm
+                      initialData={user}
+                      password={password}
+                      statusMessage={statusMessage}
+                      capturedImages={capturedImages}
+                      onSubmit={submitCadastroForm}
+                      onReset={reset}
+                    />
+                  </motion.div>
+                )}
+
+                {step === 'cadastroSuccess' && (
+                  <motion.div
+                    key="cadastroSuccess"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -24 }}
+                    transition={{ duration: 0.3 }}
+                    className="rounded-[32px] bg-white p-6 shadow-sm sm:p-8"
+                  >
+                    <div className="mb-6 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.32em] text-[#06a08b]">Cadastro</p>
+                        <h2 className="mt-2 text-3xl font-semibold text-[#162033]">Tudo certo!</h2>
+                      </div>
+                    </div>
+                    <div className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] p-7 text-center">
+                      <p className="text-sm text-[#0f766e]">Cadastro salvo com sucesso</p>
                       <p className="mt-3 text-3xl font-semibold text-[#064e3b]">{password}</p>
                       <p className="mt-2 text-sm text-[#0f766e]">Aguarde na área selecionada para atendimento.</p>
                     </div>
