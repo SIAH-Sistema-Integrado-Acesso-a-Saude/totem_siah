@@ -64,7 +64,8 @@ export async function submitCadastro(payload) {
 
 export async function triageCpf(cpf) {
   await sleep(800);
-  const numero = String(Math.floor(Math.random() * 900) + 100); // 100-999
+  // Gera 3 números aleatórios (000 a 999)
+  const numero = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   return {
     cpf,
     senha: `A-${numero}`,
@@ -83,6 +84,19 @@ export async function startBiometry(cpf) {
 
   return await response.json();
 }
+
+export async function enrollBiometry(cpf) {
+  const response = await fetchWithTimeout(`/iniciar-cadastro?cpf=${cpf}`, {
+    method: 'GET',
+  }, 120000);
+
+  if (!response.ok) {
+    throw new Error(`Erro no cadastro biométrico: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 
 export async function recognizeFace(images) {
   const response = await fetchWithTimeout(`${API_BASE_URL}/pacientes/reconhecer`, {
@@ -139,7 +153,8 @@ export async function generateTicket(cpf, area) {
     return { senha: ticketCode };
   }
 
-  // Fallback local: gera o código no formato correto se a API não retornou
-  const numero = String(Math.floor(Math.random() * 900) + 100);
+  // Fallback local: gera o código de 3 dígitos se a API não retornou
+  const numero = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   return { senha: `${servicePrefix}-${numero}` };
-}
+}
+

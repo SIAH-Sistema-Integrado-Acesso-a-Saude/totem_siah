@@ -3,6 +3,7 @@ import { Fingerprint, ScanFace, RefreshCcw } from 'lucide-react';
 import { useTotemFlow } from '../hooks/useTotemFlow';
 import FacialCapture from './FacialCapture';
 import CadastroForm from './CadastroForm';
+import BiometryEnroll from './BiometryEnroll';
 import leftIllustration from '../assets/Component 1 (2).png';
 import rightIllustration from '../assets/Image (29).png';
 
@@ -35,6 +36,7 @@ export default function Presentation() {
     cancelFacial,
     enrollFacial,
     cancelEnrollment,
+    completeEnrollment,
     selectArea,
     goToCadastroForm,
     submitCadastroForm,
@@ -92,6 +94,11 @@ export default function Presentation() {
       label: 'Totem de atendimento',
       title: 'Cadastro concluído',
       subtitle: 'Dados salvos com sucesso.',
+    },
+    biometryEnroll: {
+      label: 'Totem de atendimento',
+      title: 'Cadastro biométrico',
+      subtitle: 'Siga as instruções do leitor e coloque o dedo 4 vezes.',
     },
   };
 
@@ -431,8 +438,25 @@ export default function Presentation() {
                     </div>
                   </motion.div>
                 )}
+
+                {step === 'biometryEnroll' && (
+                  <motion.div
+                    key="biometryEnroll"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -24 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <BiometryEnroll
+                      cpf={cpf}
+                      onComplete={completeEnrollment}
+                      onCancel={cancelEnrollment}
+                    />
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
+
           </div>
         </div>
       </div>

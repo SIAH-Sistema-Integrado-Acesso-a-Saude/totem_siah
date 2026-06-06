@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Fingerprint } from 'lucide-react';
 
 const maskCPF = (value) =>
   value
@@ -151,7 +152,7 @@ export default function CadastroForm({ initialData, password, statusMessage, cap
         embeddingPath: '',
         tempFile: '',
       };
-      await onSubmit(payload);
+      await onSubmit(payload, e.nativeEvent.submitter?.name === 'btnBiometria');
     } finally {
       setEnviando(false);
     }
@@ -385,13 +386,26 @@ export default function CadastroForm({ initialData, password, statusMessage, cap
           />
         </Field>
 
-        <button
-          type="submit"
-          disabled={enviando}
-          className="mt-2 w-full rounded-[16px] bg-gradient-to-br from-[#35D9C8] to-[#2bc4b4] px-6 py-4 text-base font-semibold text-white transition disabled:opacity-60"
-        >
-          {enviando ? 'Enviando...' : 'Finalizar cadastro'}
-        </button>
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="submit"
+            name="btnBiometria"
+            disabled={enviando}
+            className="flex w-full items-center justify-center gap-3 rounded-[16px] bg-[#162033] px-6 py-4 text-base font-semibold text-white transition disabled:opacity-60 hover:bg-[#0f2038]"
+          >
+            <Fingerprint className="h-5 w-5" />
+            Salvar e Cadastrar Biometria
+          </button>
+
+          <button
+            type="submit"
+            name="btnFinalizar"
+            disabled={enviando}
+            className="w-full rounded-[16px] bg-gradient-to-br from-[#35D9C8] to-[#2bc4b4] px-6 py-4 text-base font-semibold text-white transition disabled:opacity-60 hover:opacity-90"
+          >
+            {enviando ? 'Enviando...' : 'Finalizar cadastro'}
+          </button>
+        </div>
 
         {statusMessage ? (
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-200 bg-red-50 p-3 text-left text-xs font-medium text-[#b91c1c]">

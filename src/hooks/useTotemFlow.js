@@ -93,8 +93,13 @@ export function useTotemFlow() {
   );
 
   const cancelEnrollment = useCallback(() => {
-    setStep('cpfEntry');
-    setStatusMessage('');
+    setStep('cadastroSuccess');
+    setStatusMessage('Biometria ignorada. Cadastro salvo com sucesso.');
+  }, []);
+
+  const completeEnrollment = useCallback(() => {
+    setStep('cadastroSuccess');
+    setStatusMessage('Biometria cadastrada e cadastro concluído com sucesso.');
   }, []);
 
   const authenticate = useCallback(
@@ -221,13 +226,19 @@ export function useTotemFlow() {
   }, []);
 
   const submitCadastroForm = useCallback(
-    async (formData) => {
+    async (formData, proceedToBiometry = false) => {
       setLoading(true);
       setOverlayMessage('Enviando cadastro...');
       try {
         await submitCadastro(formData);
-        setStep('cadastroSuccess');
-        setStatusMessage('Cadastro concluído com sucesso.');
+        
+        if (proceedToBiometry) {
+          setStep('biometryEnroll');
+          setStatusMessage('Cadastro salvo com sucesso. Agora posicione seu dedo no leitor.');
+        } else {
+          setStep('cadastroSuccess');
+          setStatusMessage('Cadastro concluído com sucesso.');
+        }
       } catch (error) {
         console.error('Erro ao enviar cadastro:', error);
         const status = error?.status ?? 'sem status';
@@ -283,6 +294,7 @@ export function useTotemFlow() {
     cancelFacial,
     enrollFacial,
     cancelEnrollment,
+    completeEnrollment,
     selectArea,
     goToCadastroForm,
     submitCadastroForm,

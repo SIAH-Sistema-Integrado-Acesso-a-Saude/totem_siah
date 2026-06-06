@@ -19,7 +19,16 @@ export default defineConfig({
       '/iniciar-leitura': {
         target: 'http://localhost:8080',
         changeOrigin: false,
+        timeout: 120000,
+        proxyTimeout: 120000,
       },
+      '/iniciar-cadastro': {
+        target: 'http://localhost:8080',
+        changeOrigin: false,
+        timeout: 120000,
+        proxyTimeout: 120000,
+      },
+
       '/queue': {
         target: 'https://mulberry-carload-example.ngrok-free.dev',
         changeOrigin: true,
