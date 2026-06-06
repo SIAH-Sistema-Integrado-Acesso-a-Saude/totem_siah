@@ -1,6 +1,6 @@
 # Totem SIAH — Treenity
 
-Totem de autoatendimento para unidades de saúde. Permite que o paciente faça check-in identificando-se por **CPF**, confirmando a identidade via **biometria digital** ou **reconhecimento facial com prova de vida**, e gera uma **senha de atendimento** após a escolha da área (Pediatra, Dentista, Clínica, Farmácia, etc.).
+Totem de autoatendimento para unidades de saúde. Permite que o paciente faça check-in identificando-se por **CPF**, confirmando a identidade via **biometria digital** ou **reconhecimento facial com prova de vida**, gera uma **senha de atendimento** após a escolha da área (Pediatra, Dentista, Clínica, Farmácia, etc.) e finaliza com o **formulário de cadastro** — pré-preenchido para pacientes já registrados ou vazio para novos pacientes (POST direto no backend).
 
 Aplicação **single-page** construída em **React 18 + Vite**, estilizada com **TailwindCSS** e integrada a um backend externo via proxy do Vite.
 
@@ -33,13 +33,17 @@ O totem cobre o seguinte fluxo de atendimento:
 1. Paciente digita o **CPF** num teclado virtual.
 2. Sistema consulta o cadastro:
    - **CPF encontrado** → segue para escolha de método de autenticação (biometria digital ou facial).
-   - **CPF não encontrado** → gera uma senha de **triagem** (`A-XXX`) para cadastro manual.
-3. Autenticação:
+   - **CPF não encontrado** → fluxo de **cadastro facial** (captura 4 poses) e gera senha de **triagem** (`A-XXX`).
+3. Autenticação (paciente existente):
    - **Biometria digital**: chama o leitor local em `http://localhost:8080`.
    - **Facial**: captura 4 poses (frente, esquerda, direita, cima) via webcam, com prova de vida (face-api.js), e envia para reconhecimento no backend.
 4. Identidade confirmada → paciente escolhe a **área de atendimento**.
 5. Backend gera **ticket/senha** (`P-123`, `D-456`...) e o totem exibe na tela.
-6. Tela final é mostrada por **4 segundos** e o totem volta sozinho à tela inicial.
+6. Paciente clica em **"Continuar para cadastro"** → abre o formulário:
+   - **Existente**: campos pré-preenchidos com dados do backend, editáveis para correção.
+   - **Novo**: campos vazios para preenchimento e POST.
+7. Submit envia o payload para `POST /api/pacientes/cadastrar` (inclui as imagens faciais capturadas).
+8. Tela de sucesso é mostrada por **4 segundos** e o totem volta sozinho à tela inicial.
 
 ---
 
@@ -103,15 +107,18 @@ O front **não fala direto** com os backends — todas as chamadas passam pelo p
 
 Implementado em `src/hooks/useTotemFlow.js`. Estados do `step`:
 
-| Step           | O que acontece                                                      |
-|----------------|---------------------------------------------------------------------|
-| `cpfEntry`     | Teclado virtual para digitar 11 dígitos do CPF                      |
-| `authSelection`| Mostra usuário encontrado e oferece Biometria ou Facial             |
-| `biometryPrompt` | Aguarda leitor digital (timeout 30s)                              |
-| `facialPrompt` | Webcam + face-api.js captura 4 poses                                |
-| `areaSelection`| Botões com áreas de atendimento                                     |
-| `triageResult` | CPF não cadastrado — gera senha `A-XXX` para triagem manual         |
-| `result`       | Senha de atendimento exibida (volta para `cpfEntry` em 4s)          |
+| Step                 | O que acontece                                                                   |
+|----------------------|----------------------------------------------------------------------------------|
+| `cpfEntry`           | Teclado virtual para digitar 11 dígitos do CPF                                   |
+| `authSelection`      | Mostra usuário encontrado e oferece Biometria ou Facial                          |
+| `biometryPrompt`     | Aguarda leitor digital (timeout 30s)                                             |
+| `facialPrompt`       | Webcam + face-api.js captura 4 poses (paciente já cadastrado, para reconhecer)   |
+| `facialEnrollment`   | Captura 4 poses para **novo** paciente (sem cadastro)                            |
+| `areaSelection`      | Botões com áreas de atendimento                                                  |
+| `triageResult`       | CPF não cadastrado — exibe senha `A-XXX` + botão para o form de cadastro         |
+| `result`             | Senha de atendimento exibida + botão "Continuar para cadastro"                   |
+| `cadastroForm`       | Formulário (vazio para novo, pré-preenchido para existente)                      |
+| `cadastroSuccess`    | Confirmação de cadastro (volta para `cpfEntry` em 4s — único auto-reset do fluxo)|
 
 ---
 
@@ -130,7 +137,8 @@ totem_siah/
 │   ├── assets/                  # Ilustrações do layout
 │   ├── components/
 │   │   ├── Presentation.jsx     # Tela principal do totem (todos os steps)
-│   │   └── FacialCapture.jsx    # Captura facial com prova de vida
+│   │   ├── FacialCapture.jsx    # Captura facial com prova de vida
+│   │   └── CadastroForm.jsx     # Formulário de cadastro pós-senha
 │   ├── hooks/
 │   │   └── useTotemFlow.js      # State machine do fluxo
 │   └── services/
@@ -304,6 +312,42 @@ Content-Type: application/json
 Espera resposta com qualquer um dos campos: `senha`, `ticket`, `numero`, `code`, `senhaGerada`, `ticketNumber`.
 Se o backend não devolver nada utilizável, o front **gera um fallback** no formato `{PREFIX}-{100-999}`.
 
+### 6. Cadastrar paciente (formulário pós-senha)
+
+```http
+POST /api/pacientes/cadastrar
+Content-Type: application/json
+
+{
+  "nome": "...",
+  "cpf": "11122233344",
+  "email": "...",
+  "telefone": "11999998888",
+  "dataNascimento": "1990-05-15",
+  "genero": "Masculino",
+  "tipoSanguineo": "O+",
+  "hospitalVinculado": "...",
+  "rg": "...",
+  "cartaoSus": "...",
+  "cnh": "...",
+  "cep": "...", "rua": "...", "numero": "...", "bairro": "...", "cidade": "...", "estado": "SP",
+  "possuiPlanoSaude": false,
+  "nomePlano": "", "numeroCarteirinha": "", "validadeCarteirinha": null,
+  "nomeResponsavel": "", "parentesco": "", "telefoneResponsavel": "",
+  "images": ["data:image/jpeg;base64,/9j/...", "...4 fotos..."],
+  "embedding": [],
+  "embeddingPath": "",
+  "tempFile": ""
+}
+```
+
+- **Payload em camelCase** (alinhado com o schema do Swagger).
+- **CPF e telefones** vão sem máscara (só dígitos).
+- **Datas** vazias viram `null` (evita erro de cast `text → date` no Postgres).
+- **`images[]`** recebe os 4 base64 capturados durante o enrollment facial — backend usa para gerar o embedding e salvar para reconhecimento futuro.
+- **Bloco de responsável** (`nomeResponsavel`, `parentesco`, `telefoneResponsavel`) só é preenchido quando o paciente é menor de idade.
+- **2xx** → segue para `cadastroSuccess`. **Erro** → mensagem com status + body do backend aparece em vermelho no próprio form (útil quando não há console disponível em tablet).
+
 ---
 
 ## Modelos de IA (face-api.js)
@@ -333,10 +377,11 @@ Para cada pose, o usuário precisa manter a posição por **3 segundos** estáve
 ## Componentes e hooks
 
 ### `Presentation.jsx`
-Tela principal. Renderiza um dos 7 steps com transições do `framer-motion`. Contém:
+Tela principal. Renderiza um dos 10 steps com transições do `framer-motion`. Contém:
 - Cabeçalho dinâmico por step (`stepHeaders`)
 - Teclado virtual de 12 teclas (`keypad`)
 - Lista de áreas (`areaOptions`)
+- Botão "Continuar para cadastro" nas telas de senha (`result` / `triageResult`)
 - Overlay de loading com spinner
 
 ### `FacialCapture.jsx`
@@ -346,13 +391,25 @@ Componente isolado de captura facial. Recebe:
 
 Usa `useRef` para o loop de animação (`requestAnimationFrame`) e evita re-renders desnecessários.
 
+### `CadastroForm.jsx`
+Formulário pós-senha. Recebe:
+- `initialData` — objeto do paciente vindo do `queryCpf` (pré-preenche). Se `null` (novo paciente), começa vazio.
+- `password` — senha exibida no topo do form como confirmação.
+- `statusMessage` — mensagem de erro do backend, renderizada em caixa vermelha com scroll.
+- `capturedImages` — array de base64 das 4 poses (vai no `images[]` do payload).
+- `onSubmit(payload)` — disparado no submit, monta o payload camelCase.
+- `onReset()` — volta para `cpfEntry`.
+
+Aceita `initialData` em **snake_case ou camelCase** (resiliente ao formato do backend). Aplica máscaras de CPF/telefone, esconde bloco do plano de saúde quando o checkbox está desmarcado, e o bloco do responsável só aparece quando o paciente tem menos de 18 anos.
+
 ### `useTotemFlow.js`
 Hook que centraliza **todo o estado** do totem:
 - `cpf`, `step`, `user`, `password`
 - Mensagens (`statusMessage`, `entryMessage`, `overlayMessage`)
 - Loading global
-- Funções: `appendDigit`, `clearCpf`, `submitCpf`, `authenticate`, `submitFacial`, `cancelFacial`, `selectArea`, `reset`
-- Auto-reset após 4s nas telas de resultado
+- `capturedImages` — exposto via ref para o `CadastroForm` injetar no payload
+- Funções: `appendDigit`, `clearCpf`, `submitCpf`, `authenticate`, `submitFacial`, `cancelFacial`, `enrollFacial`, `cancelEnrollment`, `selectArea`, `goToCadastroForm`, `submitCadastroForm`, `reset`
+- Auto-reset após 4s **apenas** no step `cadastroSuccess` — `result` e `triageResult` não resetam mais sozinhos para dar tempo do usuário clicar em "Continuar para cadastro"
 
 ### `totemService.js`
 Wrapper de `fetch` com timeout, headers padrão e tratamento de erros. Centraliza todos os endpoints.
@@ -363,35 +420,47 @@ Wrapper de `fetch` com timeout, headers padrão e tratamento de erros. Centraliz
 
 ```
         ┌─────────────┐
-        │  cpfEntry   │ ◄─────────────────────────────┐
-        └──────┬──────┘                                │
-               │ submitCpf                             │ reset / 4s
-               ▼                                       │
-       ┌───────────────┐  CPF não achado  ┌────────────┴────┐
-       │  queryCpf     │ ───────────────► │  triageResult   │
-       └───────┬───────┘                  └─────────────────┘
-               │ CPF OK                                ▲
-               ▼                                       │
-       ┌───────────────┐                               │
-       │ authSelection │                               │
-       └───┬────────┬──┘                               │
-   biometria│        │facial                           │
-           ▼        ▼                                  │
-   ┌─────────────┐ ┌──────────────┐                    │
-   │biometryPrompt│ │facialPrompt │                    │
-   └──────┬──────┘ └──────┬───────┘                    │
-          │                │                           │
-          │ OK             │ OK + CPF bate             │
-          └────────┬───────┘                           │
-                   ▼                                   │
-            ┌──────────────┐                           │
-            │ areaSelection│                           │
-            └──────┬───────┘                           │
-                   │ selectArea                        │
-                   ▼                                   │
-              ┌─────────┐                              │
-              │ result  │ ─────────────────────────────┘
-              └─────────┘
+        │  cpfEntry   │ ◄─────────────────────────────────────────┐
+        └──────┬──────┘                                            │
+               │ submitCpf                                         │ reset / 4s
+               ▼                                                   │
+       ┌───────────────┐  CPF não achado  ┌──────────────────────┐ │
+       │   queryCpf    │ ───────────────► │  facialEnrollment    │ │
+       └───────┬───────┘                  └──────────┬───────────┘ │
+               │ CPF OK                              │             │
+               ▼                                     ▼             │
+       ┌───────────────┐                  ┌──────────────────────┐ │
+       │ authSelection │                  │    triageResult      │ │
+       └───┬────────┬──┘                  └──────────┬───────────┘ │
+   biometria│        │facial                         │             │
+           ▼        ▼                                │             │
+   ┌──────────────┐ ┌──────────────┐                 │             │
+   │biometryPrompt│ │ facialPrompt │                 │             │
+   └──────┬───────┘ └──────┬───────┘                 │             │
+          │                │                         │             │
+          │ OK             │ OK + CPF bate           │             │
+          └────────┬───────┘                         │             │
+                   ▼                                 │             │
+            ┌──────────────┐                         │             │
+            │ areaSelection│                         │             │
+            └──────┬───────┘                         │             │
+                   │ selectArea                      │             │
+                   ▼                                 │             │
+              ┌──────────┐                           │             │
+              │  result  │                           │             │
+              └────┬─────┘                           │             │
+                   │ "Continuar para cadastro"       │             │
+                   │                                 │             │
+                   └─────────────┬───────────────────┘             │
+                                 ▼                                 │
+                       ┌───────────────────┐                       │
+                       │   cadastroForm    │                       │
+                       └─────────┬─────────┘                       │
+                                 │ submit OK                       │
+                                 ▼                                 │
+                       ┌───────────────────┐                       │
+                       │ cadastroSuccess   │ ──────────────────────┘
+                       └───────────────────┘
 ```
 
 ---
@@ -425,6 +494,9 @@ Em produção real, o `dist/` precisa ser servido por um web server (nginx, etc.
 | Facial reconhece, mas mostra "rosto não corresponde ao CPF" | Backend devolveu paciente diferente do CPF digitado | Comportamento intencional — segurança. Repetir com CPF correto.            |
 | Senha sempre cai no fallback `{PREFIX}-XXX`| `/queue/validate-totem` respondendo sem código | Conferir formato de resposta esperado em `generateTicket`                   |
 | `allowedHosts` reclamando no ngrok         | Túnel novo                                     | Adicionar o host em `vite.config.js → server.allowedHosts`                  |
+| Cadastro retorna 500 com erro de coluna `date` no Postgres | Backend está enviando `dataNascimento`/`validadeCarteirinha` como `text` sem cast | Bug do backend — coluna `date` recebe `text`. Frontend já manda formato ISO. Pedir cast `::date` ou conversão `DateOnly`. |
+| Após cadastro, reconhecimento facial não acha o paciente | Backend não está gerando/persistindo o `embedding` a partir do `images[]` enviado | Verificar pipeline de embedding no `CadastrarAsync` do backend. Sem embedding salvo, recognition nunca casa. |
+| Erro de cadastro aparece em caixa vermelha no form | Backend devolveu 4xx/5xx | Texto da caixa traz `status` + body — usar para diagnosticar (formato de campo, validação faltando, etc.) |
 
 ---
 
@@ -432,7 +504,8 @@ Em produção real, o `dist/` precisa ser servido por um web server (nginx, etc.
 
 - Front **valida CPF da resposta facial contra CPF digitado**, evitando que um rosto reconhecido na base seja usado para entrar como outra pessoa.
 - 401 do reconhecimento facial é **silencioso** (não vaza informação sobre quem está na base).
-- Triagem é gerada **localmente** quando o CPF não é encontrado — não cadastra ninguém no backend, só direciona à atendente.
+- Triagem é gerada **localmente** quando o CPF não é encontrado — não cadastra ninguém no backend até o paciente submeter o form de cadastro.
+- O form de cadastro envia imagens faciais capturadas no `enrollment` — backend deve gerar e persistir embedding para que reconhecimento futuro funcione.
 
 ---
 
