@@ -44,6 +44,19 @@ export function useTotemFlow() {
     setEntryMessage('');
   }, []);
 
+  const reset = useCallback(() => {
+    clearTimers();
+    capturedImagesRef.current = [];
+    setCpf('');
+    setStep('cpfEntry');
+    setUser(null);
+    setStatusMessage('');
+    setEntryMessage('');
+    setPassword('');
+    setOverlayMessage('');
+    setLoading(false);
+  }, [clearTimers]);
+
   const submitCpf = useCallback(async () => {
     if (cpf.length !== 11) {
       setEntryMessage('Digite um CPF válido com 11 dígitos.');
@@ -253,19 +266,6 @@ export function useTotemFlow() {
     },
     [],
   );
-
-  const reset = useCallback(() => {
-    clearTimers();
-    capturedImagesRef.current = [];
-    setCpf('');
-    setStep('cpfEntry');
-    setUser(null);
-    setStatusMessage('');
-    setEntryMessage('');
-    setPassword('');
-    setOverlayMessage('');
-    setLoading(false);
-  }, [clearTimers]);
 
   useEffect(() => {
     if (step === 'cadastroSuccess') {

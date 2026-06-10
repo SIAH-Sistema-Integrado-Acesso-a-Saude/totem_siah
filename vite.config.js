@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     allowedHosts: [
       'arletha-nonbusy-unfaithfully.ngrok-free.dev',
-      'voyage-eardrum-spirited.ngrok-free.dev'
+      'mulberry-carload-example.ngrok-free.dev'
     ],
     proxy: {
       '/api': {
@@ -17,14 +17,14 @@ export default defineConfig({
         },
       },
       '/iniciar-leitura': {
-        target: 'http://localhost:8080',
-        changeOrigin: false,
+        target: 'https://arletha-nonbusy-unfaithfully.ngrok-free.dev/',
+        changeOrigin: true,
         timeout: 120000,
         proxyTimeout: 120000,
       },
       '/iniciar-cadastro': {
-        target: 'http://localhost:8080',
-        changeOrigin: false,
+        target: 'https://arletha-nonbusy-unfaithfully.ngrok-free.dev/',
+        changeOrigin: true,
         timeout: 120000,
         proxyTimeout: 120000,
       },
